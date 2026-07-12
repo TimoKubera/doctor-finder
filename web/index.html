@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Doctor Finder – Suche zusammenstellen</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d7d84' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3M11 8v6M8 11h6'/%3E%3C/svg%3E">
+<meta name="color-scheme" content="light dark">
 <style>
   :root {
     --bg: #eaeff1;
@@ -225,7 +227,57 @@
   footer { margin-top: 28px; text-align: center; color: var(--faint); font-size: .78rem; }
   footer a { color: var(--muted); }
 
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  /* Live-Suche */
+  .run-panel { display: flex; align-items: center; gap: 14px; margin-top: 28px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: var(--accent-ink);
+    border: none; border-radius: var(--radius-sm); padding: 12px 20px;
+    font: inherit; font-weight: 640; cursor: pointer; transition: background .15s, opacity .15s;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-primary svg { width: 17px; height: 17px; }
+  .btn-primary.busy .ico-play { display: none; }
+  .btn-primary .spinner { display: none; width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--accent-ink) 40%, transparent);
+    border-top-color: var(--accent-ink); animation: spin .7s linear infinite; }
+  .btn-primary.busy .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .run-mode { font-size: .8rem; color: var(--muted); }
+  .run-mode .badge { display: inline-block; background: var(--accent-soft); color: var(--accent);
+    border-radius: 5px; padding: 1px 7px; font-weight: 650; font-size: .75rem; margin-right: 4px; }
+
+  .progress { margin-top: 18px; }
+  .progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .run-status { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .run-status.err { color: var(--danger); }
+  .run-status.ok { color: var(--accent); }
+  pre.log {
+    margin: 0; font-family: var(--mono); font-size: .78rem; line-height: 1.55;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px 14px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    color: var(--muted);
+  }
+
+  .results { margin-top: 22px; }
+  .results-summary { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .results-summary .num { font-size: 1.5rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .results-summary .sub { color: var(--muted); font-size: .88rem; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  table.res { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  table.res th, table.res td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.res th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 650; background: var(--surface-2); position: sticky; top: 0; }
+  table.res tbody tr:last-child td { border-bottom: none; }
+  table.res td.email a { color: var(--accent); text-decoration: none; }
+  table.res td.email a:hover { text-decoration: underline; }
+  table.res td.name { white-space: normal; min-width: 180px; }
+  .results-note { margin: 12px 2px 0; font-size: .82rem; color: var(--muted); }
+  .results-note code { font-family: var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); font-size: .95em; word-break: break-all; }
+
+  .output.secondary .output-head .lbl::after { content: " · alternativ manuell"; color: var(--faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  @media (prefers-reduced-motion: reduce) { *, .spinner { transition: none !important; animation: none !important; } }
   :focus-visible { outline-offset: 2px; }
 </style>
 </head>
@@ -309,6 +361,26 @@
         <p class="hint">Eigener JSON-Zielpfad. Leer lassen für den Standardpfad.</p>
       </div>
     </form>
+
+    <!-- Live-Suche (nur wenn vom Backend ausgeliefert) -->
+    <div class="run-panel" id="runPanel" hidden>
+      <button class="btn-primary" id="runBtn" type="button">
+        <svg class="ico-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="runBtnLabel">Suche starten</span>
+      </button>
+      <span class="run-mode" id="runMode"></span>
+    </div>
+
+    <div class="progress" id="progress" hidden>
+      <div class="progress-head">
+        <span class="lbl">Fortschritt</span>
+        <span class="run-status" id="runStatus"></span>
+      </div>
+      <pre class="log" id="log" aria-live="polite"></pre>
+    </div>
+
+    <div class="results" id="results" hidden></div>
 
     <!-- Command -->
     <div class="output">
@@ -578,6 +650,147 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
   $("finder").addEventListener("submit", (e) => e.preventDefault());
 
   updateCommand();
+
+  // ------------------------------------------------------------------
+  //  Live-Suche via Backend (nur wenn die Seite vom Server kommt)
+  // ------------------------------------------------------------------
+  const runPanel = $("runPanel"), runBtn = $("runBtn"), runBtnLabel = $("runBtnLabel"),
+        runMode = $("runMode"), progress = $("progress"), logEl = $("log"),
+        runStatus = $("runStatus"), resultsEl = $("results"), outputEl = document.querySelector(".output");
+  let polling = null;
+  let startedAt = 0;
+
+  function collectParams() {
+    return {
+      fachgebiet: [...selected.keys()],
+      ort: ortEl.value.trim(),
+      geschlecht: document.querySelector('input[name="geschlecht"]:checked').value,
+      punkte: parseInt(punkteEl.value, 10) || 5,
+    };
+  }
+
+  async function initLiveMode() {
+    let health;
+    try {
+      const res = await fetch("api/health", { cache: "no-store" });
+      if (!res.ok) return;
+      health = await res.json();
+    } catch { return; }   // file:// oder kein Backend -> nur Kommandozeilen-Modus
+    runPanel.hidden = false;
+    outputEl.classList.add("secondary");
+    if (health.mock) {
+      runMode.innerHTML = '<span class="badge">Demo</span>PowerShell nicht gefunden – es werden Beispieldaten geliefert.';
+    } else {
+      runMode.textContent = "Startet Find-Doctors.ps1 auf dem Server.";
+    }
+  }
+
+  function setBusy(busy) {
+    runBtn.disabled = busy;
+    runBtn.classList.toggle("busy", busy);
+    runBtnLabel.textContent = busy ? "Suche läuft …" : "Suche starten";
+  }
+
+  function fmtElapsed() {
+    const s = Math.round((Date.now() - startedAt) / 1000);
+    return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+  }
+
+  function renderLog(lines) {
+    logEl.textContent = lines.join("\n");
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function renderResults(snap) {
+    const data = snap.result || {};
+    const aerzte = data.aerzte || [];
+    const withMail = aerzte.filter((a) => a.email);
+    const rows = withMail.map((a) => `
+      <tr>
+        <td class="name">${esc(a.name || [a.titel, a.nachname].filter(Boolean).join(" "))}</td>
+        <td>${esc(a.fachgebiet || "")}</td>
+        <td>${esc([a.plz, a.ort].filter(Boolean).join(" "))}</td>
+        <td class="email"><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td>
+      </tr>`).join("");
+    resultsEl.innerHTML = `
+      <div class="results-summary">
+        <span class="num">${withMail.length}</span>
+        <span class="sub">Ärztinnen/Ärzte mit E-Mail-Adresse gefunden</span>
+      </div>
+      ${withMail.length ? `<div class="table-scroll"><table class="res">
+        <thead><tr><th>Name</th><th>Fachgebiet</th><th>Ort</th><th>E-Mail</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>` : '<p class="hint">Keine Treffer mit E-Mail-Adresse.</p>'}
+      <p class="results-note">Ergebnis gespeichert: <code>${esc(snap.out_path || "")}</code>.
+        Versand an diese Adressen mit <code>python -m mailer</code> (siehe README-mailer.md).</p>`;
+    resultsEl.hidden = false;
+  }
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  async function poll(jobId) {
+    let snap;
+    try {
+      const res = await fetch("api/search/" + jobId, { cache: "no-store" });
+      snap = await res.json();
+    } catch {
+      runStatus.textContent = "Verbindung zum Server verloren.";
+      runStatus.className = "run-status err";
+      stopPolling(); setBusy(false); return;
+    }
+    renderLog(snap.log || []);
+    if (snap.status === "running") {
+      runStatus.textContent = "läuft … " + fmtElapsed();
+      runStatus.className = "run-status";
+      return;
+    }
+    stopPolling();
+    setBusy(false);
+    if (snap.status === "done") {
+      runStatus.textContent = "fertig in " + fmtElapsed();
+      runStatus.className = "run-status ok";
+      renderResults(snap);
+    } else {
+      runStatus.textContent = "Fehler: " + (snap.error || "unbekannt");
+      runStatus.className = "run-status err";
+    }
+  }
+
+  function stopPolling() { if (polling) { clearInterval(polling); polling = null; } }
+
+  runBtn.addEventListener("click", async () => {
+    const params = collectParams();
+    if (!params.fachgebiet.length || !params.ort) {
+      validationEl.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>'
+        + "Bitte " + [!params.fachgebiet.length && "mindestens ein Fachgebiet", !params.ort && "einen Ort"].filter(Boolean).join(" und ") + " angeben.";
+      return;
+    }
+    setBusy(true);
+    resultsEl.hidden = true;
+    progress.hidden = false;
+    logEl.textContent = "";
+    runStatus.textContent = "wird gestartet …";
+    runStatus.className = "run-status";
+    startedAt = Date.now();
+    let job;
+    try {
+      const res = await fetch("api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
+      job = await res.json();
+      if (!res.ok) throw new Error(job.error || ("HTTP " + res.status));
+    } catch (err) {
+      runStatus.textContent = "Start fehlgeschlagen: " + err.message;
+      runStatus.className = "run-status err";
+      setBusy(false);
+      return;
+    }
+    polling = setInterval(() => poll(job.job_id), 1000);
+    poll(job.job_id);
+  });
+
+  initLiveMode();
 })();
 </script>
 </body>

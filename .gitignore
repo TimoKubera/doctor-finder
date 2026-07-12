@@ -5,3 +5,6 @@ mailer/.env
 # Python
 __pycache__/
 *.py[cod]
+
+# Server-Laufergebnisse (Web-Backend)
+server/runs/

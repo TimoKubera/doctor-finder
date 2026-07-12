@@ -19,6 +19,10 @@ der passende `Find-Doctors.ps1`-Aufruf erzeugt, den man per Klick kopiert und in
 ausführt. Die Datei kommt ohne Build-Schritt und ohne externe Abhängigkeiten aus – einfach im
 Browser öffnen oder auf einem beliebigen Static-Host bereitstellen.
 
+Mit dem **Web-Backend** (`python -m server`, siehe [`README-server.md`](README-server.md)) wird
+daraus eine echte Live-Suche: Der Dienst liefert dieselbe Oberfläche aus, startet auf Klick
+`Find-Doctors.ps1` und zeigt Fortschritt und Ergebnisse direkt im Browser an.
+
 ## Voraussetzungen
 
 - Windows PowerShell 5.1 (auf Windows vorinstalliert) – **keine** Installation weiterer Pakete.
