@@ -14,7 +14,7 @@
 
 $Global:NominatimBase      = 'https://nominatim.openstreetmap.org'
 # Nominatim verlangt einen aussagekraeftigen User-Agent (kein Browser-Default).
-$Global:NominatimUserAgent = 'doctor-hunter/1.0 (TK-Aerztefuehrer PLZ-Sweep)'
+$Global:NominatimUserAgent = 'doctor-finder/1.0 (TK-Aerztefuehrer PLZ-Sweep)'
 
 function Invoke-NominatimJson {
   # Einzelne Nominatim-Anfrage; $null bei Fehler.

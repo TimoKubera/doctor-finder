@@ -1,4 +1,4 @@
-# Doctor Hunter
+# Doctor Finder
 
 Findet Ärztinnen/Ärzte im [TK-Ärzteführer](https://www.tk-aerztefuehrer.de/), ermittelt über
 die Praxis-Homepage (Impressum) die E-Mail-Adresse und verifiziert die Adresse. Um **das ganze
@@ -6,8 +6,18 @@ Stadtgebiet** abzudecken (nicht nur die Innenstadt), wird der Ort mit mehreren w
 auseinanderliegenden PLZ abgesucht (PLZ-Sweep) und die Treffer werden zusammengeführt. Die Funde
 werden als JSON im Ordner `assets/` gespeichert.
 
-> Der spätere automatisierte Mailversand ist **out of scope** – dieses Tool erzeugt nur die
-> Kandidatenliste. Der Mailversand kann später einfach auf Einträge mit `email != ""` aufsetzen.
+> Der Versand an die gefundenen Adressen ist der **zweite Teil** des Projekts (Python-Backend im
+> Ordner `mailer/`, Details in [`README-mailer.md`](README-mailer.md)); er setzt auf die hier
+> erzeugten Einträge mit `email != ""` auf.
+
+## Web-Oberfläche (Parameter zusammenstellen)
+
+`web/index.html` ist eine eigenständige, statische Single-Page-Oberfläche zum bequemen
+Zusammenstellen der Suchparameter: durchsuchbare **Fachgebiet**-Auswahl (Mehrfachauswahl),
+**Ort**, **Geschlecht**, **PLZ-Suchpunkte** und optionale **Ausgabedatei**. Daraus wird live
+der passende `Find-Doctors.ps1`-Aufruf erzeugt, den man per Klick kopiert und in PowerShell
+ausführt. Die Datei kommt ohne Build-Schritt und ohne externe Abhängigkeiten aus – einfach im
+Browser öffnen oder auf einem beliebigen Static-Host bereitstellen.
 
 ## Voraussetzungen
 

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Doctor Hunter - findet Aerztinnen/Aerzte im TK-Aerztefuehrer, ermittelt ueber die
+  Doctor Finder - findet Aerztinnen/Aerzte im TK-Aerztefuehrer, ermittelt ueber die
   Praxis-Homepage (Impressum) die E-Mail-Adresse und verifiziert die Adresse.
 
 .DESCRIPTION
@@ -79,7 +79,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Show-Usage {
   Write-Host ''
-  Write-Host 'Doctor Hunter - TK-Aerztefuehrer Crawler' -ForegroundColor Cyan
+  Write-Host 'Doctor Finder - TK-Aerztefuehrer Crawler' -ForegroundColor Cyan
   Write-Host '========================================'
   Write-Host 'Verwendung:'
   Write-Host '  .\Find-Doctors.ps1 -Fachgebiet <Nr[,Nr,...]> -Ort <Ort> [-Geschlecht m|w] [-Out <Datei>]'

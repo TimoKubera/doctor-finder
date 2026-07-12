@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doctor Finder – Suche zusammenstellen</title>
+<style>
+  :root {
+    --bg: #eaeff1;
+    --surface: #ffffff;
+    --surface-2: #f3f6f7;
+    --border: #d5dee1;
+    --border-strong: #bcc9cd;
+    --ink: #16272d;
+    --muted: #5a6d74;
+    --faint: #8496 9c;
+    --accent: #0d7d84;
+    --accent-hover: #0a666c;
+    --accent-ink: #ffffff;
+    --accent-soft: #d8ecee;
+    --danger: #b4442f;
+    --focus: #16a0a8;
+    --faint: #84969c;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(16,39,45,.06), 0 8px 30px rgba(16,39,45,.08);
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1316;
+      --surface: #121e22;
+      --surface-2: #16242a;
+      --border: #24363d;
+      --border-strong: #33484f;
+      --ink: #e7eff1;
+      --muted: #97abb2;
+      --faint: #6c8088;
+      --accent: #35b3ba;
+      --accent-hover: #4cc3ca;
+      --accent-ink: #052227;
+      --accent-soft: #123037;
+      --danger: #e08066;
+      --focus: #4cc3ca;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 34px rgba(0,0,0,.36);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #eaeff1; --surface: #ffffff; --surface-2: #f3f6f7; --border: #d5dee1;
+    --border-strong: #bcc9cd; --ink: #16272d; --muted: #5a6d74; --faint: #84969c;
+    --accent: #0d7d84; --accent-hover: #0a666c; --accent-ink: #ffffff;
+    --accent-soft: #d8ecee; --danger: #b4442f; --focus: #16a0a8;
+    --shadow: 0 1px 2px rgba(16,39,45,.06), 0 8px 30px rgba(16,39,45,.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1316; --surface: #121e22; --surface-2: #16242a; --border: #24363d;
+    --border-strong: #33484f; --ink: #e7eff1; --muted: #97abb2; --faint: #6c8088;
+    --accent: #35b3ba; --accent-hover: #4cc3ca; --accent-ink: #052227;
+    --accent-soft: #123037; --danger: #e08066; --focus: #4cc3ca;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 34px rgba(0,0,0,.36);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: clamp(20px, 4vw, 48px) 20px 96px; }
+
+  header.masthead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .mark {
+    width: 40px; height: 40px; border-radius: 11px; flex: none;
+    background: var(--accent); color: var(--accent-ink);
+    display: grid; place-items: center;
+  }
+  .mark svg { width: 22px; height: 22px; }
+  h1 { font-size: 1.35rem; line-height: 1.15; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: .86rem; }
+
+  .theme-toggle {
+    flex: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); border-radius: 9px; width: 38px; height: 38px;
+    cursor: pointer; display: grid; place-items: center; transition: color .15s, border-color .15s;
+  }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--border-strong); }
+  .theme-toggle svg { width: 18px; height: 18px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: clamp(18px, 3vw, 28px);
+  }
+
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field + .field { margin-top: 22px; }
+  .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  label.lbl {
+    font-size: .74rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .req { color: var(--accent); font-weight: 700; }
+  .hint { font-size: .8rem; color: var(--faint); margin: 0; }
+
+  input[type="text"], input[type="number"] {
+    width: 100%; font: inherit; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 11px 13px; transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input::placeholder { color: var(--faint); }
+  input:focus-visible, .combo-input:focus-within {
+    outline: none; border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent);
+    background: var(--surface);
+  }
+
+  /* Fachgebiet combobox */
+  .combo { position: relative; }
+  .combo-input {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 3px 10px;
+  }
+  .combo-input svg { width: 17px; height: 17px; color: var(--faint); flex: none; }
+  .combo-input input { border: none; background: none; padding: 9px 0; box-shadow: none; }
+  .combo-input input:focus-visible { outline: none; box-shadow: none; }
+
+  .listbox {
+    position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    max-height: 288px; overflow-y: auto; padding: 5px; display: none;
+  }
+  .listbox.open { display: block; }
+  .opt {
+    display: flex; align-items: center; gap: 11px; padding: 8px 9px;
+    border-radius: 7px; cursor: pointer; scroll-margin: 6px;
+  }
+  .opt:hover, .opt.active { background: var(--surface-2); }
+  .opt.active { box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .opt[aria-disabled="true"] { opacity: .45; cursor: default; }
+  .opt[aria-disabled="true"]:hover { background: none; }
+  .nr {
+    font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .78rem;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 2px 7px; border-radius: 5px; min-width: 46px; text-align: center; flex: none;
+  }
+  .opt .name { font-size: .9rem; color: var(--ink); }
+  .opt .check { margin-left: auto; color: var(--accent); display: none; }
+  .opt[aria-disabled="true"] .check { display: block; }
+  .opt .check svg { width: 16px; height: 16px; }
+  .empty { padding: 14px 10px; color: var(--faint); font-size: .86rem; text-align: center; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .chips:empty { display: none; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent-soft); color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    border-radius: 999px; padding: 4px 5px 4px 10px; font-size: .82rem; max-width: 100%;
+  }
+  .chip .cnr { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--accent); font-size: .76rem; }
+  .chip .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+  .chip button {
+    flex: none; border: none; background: none; cursor: pointer; color: var(--muted);
+    width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center; padding: 0;
+  }
+  .chip button:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--ink); }
+  .chip button svg { width: 13px; height: 13px; }
+
+  /* Segmented control */
+  .segmented { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; gap: 3px; }
+  .segmented label { position: relative; }
+  .segmented input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .segmented span {
+    display: block; padding: 7px 15px; border-radius: 6px; font-size: .88rem; color: var(--muted);
+    cursor: pointer; transition: color .15s, background .15s; white-space: nowrap;
+  }
+  .segmented input:checked + span { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+  .segmented input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .two-col { display: grid; grid-template-columns: auto 1fr; gap: 22px 26px; align-items: start; }
+  @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+  .punkte-field input { max-width: 110px; }
+
+  /* Command output */
+  .output { margin-top: 30px; }
+  .output-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+  .output-head .lbl { color: var(--muted); }
+  .cmd-box { position: relative; }
+  pre.cmd {
+    margin: 0; font-family: var(--mono); font-size: .84rem; line-height: 1.6;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 15px 16px; padding-right: 52px;
+    overflow-x: auto; white-space: pre; color: var(--ink); tab-size: 2;
+  }
+  pre.cmd .flag { color: var(--accent); }
+  pre.cmd .val { color: var(--ink); }
+  pre.cmd.placeholder { color: var(--faint); }
+  .copy-btn {
+    position: absolute; top: 9px; right: 9px;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--muted);
+    border-radius: 7px; width: 34px; height: 34px; cursor: pointer; display: grid; place-items: center;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .copy-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--accent); }
+  .copy-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .copy-btn svg { width: 16px; height: 16px; }
+  .copy-btn.done { color: var(--accent); border-color: var(--accent); }
+
+  .run-note { margin: 12px 2px 0; font-size: .82rem; color: var(--muted); }
+  .run-note code { font-family: var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); font-size: .95em; }
+
+  .validation { display: flex; align-items: center; gap: 7px; margin: 10px 2px 0; font-size: .82rem; color: var(--danger); min-height: 1.2em; }
+  .validation svg { width: 15px; height: 15px; flex: none; }
+  .validation:empty { display: none; }
+
+  footer { margin-top: 28px; text-align: center; color: var(--faint); font-size: .78rem; }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>
+          <path d="M11 8v6M8 11h6"></path>
+        </svg>
+      </div>
+      <div>
+        <h1>Doctor Finder</h1>
+        <p>Suchparameter für den TK-Ärztefinder zusammenstellen</p>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Farbschema wechseln" title="Farbschema wechseln">
+      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+      </svg>
+    </button>
+  </header>
+
+  <main class="card">
+    <form id="finder" novalidate>
+      <!-- Fachgebiet -->
+      <div class="field">
+        <div class="label-row">
+          <label class="lbl" for="fgSearch">Fachgebiet <span class="req" title="Pflichtfeld">*</span></label>
+          <p class="hint" id="fgCount">keins gewählt</p>
+        </div>
+        <div class="combo">
+          <div class="combo-input" id="comboInput">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>
+            </svg>
+            <input type="text" id="fgSearch" autocomplete="off" role="combobox" aria-expanded="false"
+                   aria-controls="fgList" aria-autocomplete="list"
+                   placeholder="Fachgebiet suchen – Name oder Nummer …">
+          </div>
+          <div class="listbox" id="fgList" role="listbox" aria-label="Fachgebiete"></div>
+        </div>
+        <div class="chips" id="fgChips" aria-live="polite"></div>
+      </div>
+
+      <!-- Ort -->
+      <div class="field">
+        <div class="label-row">
+          <label class="lbl" for="ort">Ort <span class="req" title="Pflichtfeld">*</span></label>
+        </div>
+        <input type="text" id="ort" autocomplete="off" placeholder="z. B. Hannover oder 30159">
+        <p class="hint">Ort, Stadtteil oder PLZ – Pflichtfeld des TK-Ärztefinders.</p>
+      </div>
+
+      <!-- Geschlecht + Punkte -->
+      <div class="field two-col">
+        <div class="field" style="margin:0; gap:8px;">
+          <label class="lbl">Geschlecht</label>
+          <div class="segmented" role="radiogroup" aria-label="Geschlecht">
+            <label><input type="radio" name="geschlecht" value="" checked><span>Alle</span></label>
+            <label><input type="radio" name="geschlecht" value="w"><span>Weiblich</span></label>
+            <label><input type="radio" name="geschlecht" value="m"><span>Männlich</span></label>
+          </div>
+        </div>
+        <div class="field punkte-field" style="margin:0; gap:8px;">
+          <label class="lbl" for="punkte">PLZ-Suchpunkte</label>
+          <input type="number" id="punkte" value="5" min="1" max="50" step="1" inputmode="numeric">
+          <p class="hint">Ortsabdeckung (Standard 5). Mehr Punkte = größere Abdeckung, aber mehr TK-Abfragen. 1 = kein Sweep.</p>
+        </div>
+      </div>
+
+      <!-- Out -->
+      <div class="field">
+        <div class="label-row">
+          <label class="lbl" for="out">Ausgabedatei <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
+        </div>
+        <input type="text" id="out" autocomplete="off" placeholder="Standard: .\assets\aerzte_&lt;…&gt;.json">
+        <p class="hint">Eigener JSON-Zielpfad. Leer lassen für den Standardpfad.</p>
+      </div>
+    </form>
+
+    <!-- Command -->
+    <div class="output">
+      <div class="output-head">
+        <span class="lbl">PowerShell-Befehl</span>
+      </div>
+      <div class="cmd-box">
+        <pre class="cmd" id="cmd" aria-live="polite"></pre>
+        <button class="copy-btn" id="copyBtn" type="button" aria-label="Befehl kopieren" title="Kopieren" disabled>
+          <svg class="ico-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="12" height="12" rx="2"></rect>
+            <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="validation" id="validation"></div>
+      <p class="run-note">Im Projektordner in <strong>PowerShell</strong> ausführen. Ohne passende Ausführungsrichtlinie ggf. mit <code>powershell -ExecutionPolicy Bypass -File .\Find-Doctors.ps1 …</code></p>
+    </div>
+  </main>
+
+  <footer>
+    Doctor Finder · erzeugt den Aufruf für <code style="font-family:var(--mono)">Find-Doctors.ps1</code>
+  </footer>
+</div>
+
+<script>
+const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeitsmedizin"],["4","Augenheilkunde"],["5","Manuelle Medizin / Chirotherapie"],["6","Chirurgie"],["7","Haut- und Geschlechtskrankheiten"],["8","Radiologie"],["9","Innere Medizin und Gastroenterologie"],["10","Frauenheilkunde und Geburtshilfe"],["11","Innere Medizin und Haematologie und Onkologie"],["12","Hals-Nasen-Ohrenheilkunde"],["13","Homoeopathie"],["14","Innere Medizin"],["15","Innere Medizin und Kardiologie"],["16","Kinderheilkunde / Kinder- und Jugendmedizin"],["17","Kinder-/Jugendpsychiatrie und -psychotherapie"],["18","Mund-Kiefer-Gesichts-Chirurgie"],["19","Laboratoriumsmedizin"],["20","Innere Medizin und Pneumologie"],["21","Naturheilverfahren"],["22","Innere Medizin und Nephrologie"],["23","Psychiatrie und Psychotherapie"],["24","Nuklearmedizin"],["25","Orthopaedie"],["26","Hausarzt / Hausaerztin"],["27","Psychoanalyse"],["28","Innere Medizin und Rheumatologie"],["29","Sportmedizin"],["30","Urologie"],["31","Innere Medizin und Endokrinologie und Diabetologie"],["52","Neurologie"],["53","Psychotherapie"],["55","Gefaesschirurgie"],["56","Venenheilkunde (Phlebologie)"],["75","Physikalische Therapie und Balneologie"],["77","Balneologie und Medizinische Klimatologie"],["80","Anaesthesiologie"],["202","Transfusionsmedizin"],["214","Kieferorthopaedie"],["226","Proktologie -> Enddarmerkrankungen (Proktologie)"],["245","Diabetologie"],["246","Plastische Chirurgie"],["274","Zahnmedizin"],["332","Enddarmerkrankungen (Proktologie)"],["369","Flugmedizin"],["376","Handchirurgie"],["431","Rehabilitationswesen"],["458","Innere Medizin und Angiologie"],["476","Neurochirurgie"],["486","Manualtherapie -> Manuelle Medizin / Chirotherapie"],["507","Physikalische und Rehabilitative Medizin"],["566","Oralchirurgie"],["707","Hormonstoerungen -> Innere Medizin und Endokrinologie und Diabetologie"],["778","Phlebologie -> Venenheilkunde"],["797","Brustkorb-Chirurgie (Thoraxchirurgie)"],["798","Praktischer Arzt/Praktische Aerztin"],["835","Kinder- und Jugend-Kardiologie"],["870","Kinderneurologie (Neuropaediatrie)"],["874","Kinder- und Jugend-Orthopaedie"],["917","Andrologie"],["924","Physiologie"],["925","Strahlentherapie"],["927","Kinderchirurgie"],["961","Rechtsmedizin"],["962","Chirurgie: Spezielle Orthopaedische Chirurgie"],["1007","Sozialmedizin"],["1008","Bauchchirurgie (Viszeralchirurgie)"],["1040","Viszeralchirurgie -> Bauchchirurgie"],["1079","Neuroradiologie"],["1086","Psychologische Psychotherapie"],["1090","Herzchirurgie"],["1092","Betriebsmedizin"],["1142","Schmerztherapie: Spezielle Schmerztherapie"],["1144","Psychotherapeutische Medizin"],["1170","Pharmakologie, klinische"],["1186","Humangenetik"],["1232","Pathologie"],["1269","Innere Medizin und Geriatrie"],["1271","Radiologie, Diagnostische -> Diagnostische Radiologie"],["1273","Notfallmedizin"],["1307","Pharmakologie und Toxikologie"],["1334","Tropenmedizin"],["1335","Neuropaediatrie -> Kinderneurologie"],["1404","Neonatologie / Neugeborenen-Medizin"],["1405","Traumatologie -> Unfallchirurgie / Traumatologie"],["1410","Kinderradiologie"],["1412","Intensivmedizin"],["1414","Phoniatrie und Paedaudiologie"],["1437","Palliativmedizin"],["1442","Mikrobiologie und Infektionsepidemiologie"],["1458","Plastische und Aesthetische Operationen"],["1473","Hygiene und Umweltmedizin"],["1497","Nierenheilkunde -> Innere Medizin und Nephrologie"],["1532","Lungen- und Bronchialheilkunde -> Innere Medizin und Pneumologie"],["1533","Thoraxchirurgie -> Brustkorb-Chirurgie"],["1543","Schlafmedizin"],["1554","Anatomie"],["1555","Biochemie"],["1556","Neuropathologie"],["1613","Oeffentliches Gesundheitswesen"],["1665","Kinder- und Jugendlichenpsychotherapie"],["1666","Klimatologie, medizinische -> Balneologie und Medizinische Klimatologie"],["1668","Kinder-Haematologie und -Onkologie"],["1670","Genetik, medizinische"],["1671","Informatik, medizinische"],["1695","Kinder- und Jugend-Endokrinologie und -Diabetologie"],["1698","Krebserkrankungen: Gynaekologische Onkologie"],["1758","Kinder- und Jugend-Nephrologie"],["1773","Kinder- und Jugend-Pneumologie"],["1780","Infektiologie"],["1786","Diagnostische Radiologie -> Radiologie"],["1787","Psychosomatische Medizin und Psychotherapie"],["1803","Kinder- und Jugend-Rheumatologie"],["1825","Gynaekologische Exfoliativ-Zytologie"],["1931","Neugeborenen-Medizin -> Neonatologie / Neugeborenen-Medizin"],["1980","Dermatopathologie / Dermatohistologie"],["1981","Haemostaseologie"],["1982","Kinder- und Jugend-Gastroenterologie"],["1983","Krebserkrankungen: Medikamentoese Tumortherapie"],["2041","Taetigkeitsschwerpunkt: Parodontologie"],["2062","Rheumatologie: Orthopaedische Rheumatologie"],["2063","Unfallchirurgie: Spezielle Unfallchirurgie"],["2115","Gynaekologische Endokrinologie und Reproduktionsmedizin"],["2167","Suchtmedizinische Grundversorgung"],["2180","Geburt: Spezielle Geburtshilfe u. Perinatalmedizin"],["2284","Taetigkeitsschwerpunkt: Kieferorthopaedie"],["2307","Orthopaedie und Unfallchirurgie"],["2319","Taetigkeitsschwerpunkt: Implantologie"],["2320","Kinderzahnheilkunde (Kammerzertifikat)"],["2323","Taetigkeitsschwerpunkt: Endodontologie"],["2324","Funktionsdiagnostik und -therapie (Kammerzertifikat)"],["2330","Plastische und Aesthetische Chirurgie"],["2331","Psychiatrie: Forensische Psychiatrie"],["2524","Akupunktur (Zusatzbezeichnung)"],["2631","Taetigkeitsschwerpunkt: Aesthetische Zahnheilkunde"],["2889","Ernaehrungsmedizin (Zusatzbezeichnung)"],["2890","Taetigkeitsschwerpunkt: Akupunktur"],["2891","Taetigkeitsschwerpunkt: Alterszahnheilkunde"],["2892","Taetigkeitsschwerpunkt: Angstpatienten"],["2893","Taetigkeitsschwerpunkt: Behandlung fuer Menschen mit Behinderung"],["2894","Taetigkeitsschwerpunkt: Funktionsdiagnostik und -therapie"],["2895","Taetigkeitsschwerpunkt: Homoeopathie"],["2896","Taetigkeitsschwerpunkt: Hypnose"],["2897","Taetigkeitsschwerpunkt: Prophylaxe"],["2899","Taetigkeitsschwerpunkt: Laserbehandlung"],["2900","Taetigkeitsschwerpunkt: Oralchirurgie"],["2902","Taetigkeitsschwerpunkt: Prothetik / Zahnersatz"],["2903","Taetigkeitsschwerpunkt: Umweltzahnmedizin"],["2904","Verhaltenstherapie (Richtlinie)"],["2905","tiefenpsychol. fundierte Therapie (Richtlinie)"],["2906","analytische Psychotherapie (Richtlinie)"],["2910","Parodontologie"],["2912","Sprach-, Stimm-, kindliche Hoerstoerungen -> Phoniatrie und Paedaudiologie"],["2941","Magnetresonanztomographie - fachgebunden"],["2942","Bauchchirurgie: Spezielle Viszeralchirurgie"],["3735","Aerztliches Qualitaetsmanagement"],["3741","Alle Richtlinienverfahren"],["3742","analytische Psychotherapie fuer Kinder und Jugendliche (Richtlinie)"],["3743","tiefenpsychol. fundierte Therapie fuer Kinder und Jugendliche (Richtlinie)"],["3744","Verhaltenstherapie fuer Kinder und Jugendliche (Richtlinie)"],["3752","Angiologie -> Innere Medizin und Angiologie"],["3753","Endokrinologie und Diabetologie -> Innere Medizin und Endokrinologie und Diabetologie"],["3754","Gastroenterologie -> Innere Medizin und Gastroenterologie"],["3755","Geriatrie -> Innere Medizin und Geriatrie"],["3756","Kardiologie -> Innere Medizin und Kardiologie"],["3757","Nephrologie -> Innere Medizin und Nephrologie"],["3758","Pneumologie -> Innere Medizin und Pneumologie"],["3759","Rheumatologie -> Innere Medizin und Rheumatologie"],["3760","Haematologie und Onkologie -> Innere Medizin und Haematologie und Onkologie"],["3761","Neurologie und Psychiatrie"],["3763","Geriatrie / Klinische Geriatrie"],["3792","Kardiale Magnetresonanztomographie (Herz-MRT)"],["3793","Klinische Akut- und Notfallmedizin"],["3794","Krankenhaushygiene"],["3795","Nuklearmedizinische Diagnostik fuer Radiologen"],["3796","Roentgendiagnostik fuer Nuklearmediziner"],["3797","Sexualmedizin"],["3798","Spezielle Kardiologie fuer Erwachsene mit angeborenen Herzfehlern"],["3799","Spezielle Kinder- und Jugendurologie"],["3800","Transplantationsmedizin (Zusatzbezeichnung)"],["4406","Systemische Therapie (Richtlinie)"],["4437","Nervenheilkunde"],["4575","Innere Medizin und Infektiologie"],["4688","Dermatologie -> Haut- und Geschlechtskrankheiten"],["4857","Systemische Therapie fuer Kinder und Jugendliche (Richtlinie)"],["4912","Immunologie (Zusatzbezeichnung)"]];
+
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const search = $("fgSearch"), listbox = $("fgList"), chipsEl = $("fgChips"),
+        countEl = $("fgCount"), comboInput = $("comboInput"),
+        ortEl = $("ort"), punkteEl = $("punkte"), outEl = $("out"),
+        cmdEl = $("cmd"), copyBtn = $("copyBtn"), validationEl = $("validation");
+
+  const selected = new Map();   // nr -> name
+  let activeIndex = -1;
+  let currentOpts = [];
+
+  // --- Theme toggle ---
+  const themeToggle = $("themeToggle");
+  themeToggle.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = cur ? cur === "dark" : prefersDark;
+    document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+
+  // --- Utilities ---
+  const norm = (s) => s.toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss");
+  const escHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  const svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+  const svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>';
+
+  // --- Filtering & listbox ---
+  function filterOpts(q) {
+    const nq = norm(q.trim());
+    if (!nq) return FACHGEBIETE.slice(0, 60);
+    const starts = [], contains = [];
+    for (const item of FACHGEBIETE) {
+      const nr = item[0], name = item[1];
+      const nname = norm(name);
+      if (nr === nq || nr.startsWith(nq)) starts.push(item);
+      else if (nname.startsWith(nq)) starts.push(item);
+      else if (nname.includes(nq) || nr.includes(nq)) contains.push(item);
+    }
+    return starts.concat(contains).slice(0, 60);
+  }
+
+  function renderList() {
+    const q = search.value;
+    currentOpts = filterOpts(q);
+    if (currentOpts.length === 0) {
+      listbox.innerHTML = '<div class="empty">Kein Fachgebiet gefunden.</div>';
+    } else {
+      listbox.innerHTML = currentOpts.map((item, i) => {
+        const [nr, name] = item;
+        const chosen = selected.has(nr);
+        return `<div class="opt${i === activeIndex ? " active" : ""}" role="option" data-nr="${nr}" data-i="${i}"
+                     aria-selected="${chosen}" ${chosen ? 'aria-disabled="true"' : ""}>
+                  <span class="nr">${escHtml(nr)}</span>
+                  <span class="name">${escHtml(name)}</span>
+                  <span class="check">${svgCheck}</span>
+                </div>`;
+      }).join("");
+    }
+    openList();
+  }
+
+  function openList() {
+    listbox.classList.add("open");
+    search.setAttribute("aria-expanded", "true");
+  }
+  function closeList() {
+    listbox.classList.remove("open");
+    search.setAttribute("aria-expanded", "false");
+    activeIndex = -1;
+  }
+
+  function addSelection(nr, name) {
+    if (!selected.has(nr)) { selected.set(nr, name); renderChips(); updateCommand(); }
+    search.value = "";
+    renderList();
+    search.focus();
+  }
+  function removeSelection(nr) {
+    selected.delete(nr);
+    renderChips(); updateCommand();
+  }
+
+  function renderChips() {
+    const entries = [...selected.entries()];
+    chipsEl.innerHTML = entries.map(([nr, name]) =>
+      `<span class="chip"><span class="cnr">${escHtml(nr)}</span><span class="cname" title="${escHtml(name)}">${escHtml(name)}</span>
+        <button type="button" data-nr="${escHtml(nr)}" aria-label="${escHtml(name)} entfernen">${svgX}</button></span>`
+    ).join("");
+    const n = entries.length;
+    countEl.textContent = n === 0 ? "keins gewählt" : (n === 1 ? "1 gewählt" : n + " gewählt");
+  }
+
+  // --- Command generation ---
+  function needsQuote(s) { return /[^A-Za-z0-9_.\-\\:]/.test(s); }
+  function psQuote(s) { return needsQuote(s) ? "'" + s.replace(/'/g, "''") + "'" : s; }
+
+  function buildParts() {
+    const parts = [];
+    const nrs = [...selected.keys()];
+    if (nrs.length) parts.push(["-Fachgebiet", nrs.join(",")]);
+    const ort = ortEl.value.trim();
+    if (ort) parts.push(["-Ort", psQuote(ort)]);
+    const g = document.querySelector('input[name="geschlecht"]:checked').value;
+    if (g) parts.push(["-Geschlecht", g]);
+    const p = parseInt(punkteEl.value, 10);
+    if (!isNaN(p) && p !== 5 && p >= 1) parts.push(["-Punkte", String(p)]);
+    const out = outEl.value.trim();
+    if (out) parts.push(["-Out", psQuote(out)]);
+    return parts;
+  }
+
+  function updateCommand() {
+    const nrs = [...selected.keys()];
+    const ort = ortEl.value.trim();
+    const missing = [];
+    if (nrs.length === 0) missing.push("mindestens ein Fachgebiet");
+    if (!ort) missing.push("einen Ort");
+
+    if (missing.length) {
+      cmdEl.classList.add("placeholder");
+      cmdEl.textContent = ".\\Find-Doctors.ps1 …";
+      copyBtn.disabled = true;
+      validationEl.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>'
+        + "Bitte " + missing.join(" und ") + " angeben.";
+      return;
+    }
+
+    validationEl.innerHTML = "";
+    cmdEl.classList.remove("placeholder");
+    const parts = buildParts();
+    // HTML mit Hervorhebung der Flags
+    let html = ".\\Find-Doctors.ps1";
+    let plain = ".\\Find-Doctors.ps1";
+    for (const [flag, val] of parts) {
+      html += ` <span class="flag">${escHtml(flag)}</span> <span class="val">${escHtml(val)}</span>`;
+      plain += ` ${flag} ${val}`;
+    }
+    cmdEl.innerHTML = html;
+    cmdEl.dataset.plain = plain;
+    copyBtn.disabled = false;
+  }
+
+  // --- Copy ---
+  copyBtn.addEventListener("click", async () => {
+    const text = cmdEl.dataset.plain || "";
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch {}
+      document.body.removeChild(ta);
+    }
+    copyBtn.classList.add("done");
+    copyBtn.innerHTML = svgCheck;
+    copyBtn.setAttribute("title", "Kopiert!");
+    setTimeout(() => {
+      copyBtn.classList.remove("done");
+      copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>';
+      copyBtn.setAttribute("title", "Kopieren");
+    }, 1600);
+  });
+
+  // --- Events: combobox ---
+  search.addEventListener("focus", renderList);
+  search.addEventListener("input", () => { activeIndex = -1; renderList(); });
+
+  search.addEventListener("keydown", (e) => {
+    const openable = listbox.classList.contains("open");
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!openable) { renderList(); return; }
+      for (let step = 0; step < currentOpts.length; step++) {
+        activeIndex = (activeIndex + 1) % currentOpts.length;
+        if (!selected.has(currentOpts[activeIndex][0])) break;
+      }
+      updateActive();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      for (let step = 0; step < currentOpts.length; step++) {
+        activeIndex = (activeIndex - 1 + currentOpts.length) % currentOpts.length;
+        if (!selected.has(currentOpts[activeIndex][0])) break;
+      }
+      updateActive();
+    } else if (e.key === "Enter") {
+      if (openable && activeIndex >= 0 && currentOpts[activeIndex]) {
+        e.preventDefault();
+        const [nr, name] = currentOpts[activeIndex];
+        if (!selected.has(nr)) addSelection(nr, name);
+      }
+    } else if (e.key === "Escape") {
+      closeList();
+    } else if (e.key === "Backspace" && search.value === "" && selected.size) {
+      const lastNr = [...selected.keys()].pop();
+      removeSelection(lastNr);
+    }
+  });
+
+  function updateActive() {
+    [...listbox.querySelectorAll(".opt")].forEach((el, i) => {
+      el.classList.toggle("active", i === activeIndex);
+      if (i === activeIndex) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  listbox.addEventListener("mousedown", (e) => {
+    const opt = e.target.closest(".opt");
+    if (!opt || opt.getAttribute("aria-disabled") === "true") { e.preventDefault(); return; }
+    e.preventDefault();
+    const nr = opt.dataset.nr;
+    const item = FACHGEBIETE.find((x) => x[0] === nr);
+    if (item) addSelection(item[0], item[1]);
+  });
+
+  chipsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-nr]");
+    if (btn) removeSelection(btn.dataset.nr);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".combo")) closeList();
+  });
+  comboInput.addEventListener("click", () => search.focus());
+
+  ["input", "change"].forEach((ev) => {
+    ortEl.addEventListener(ev, updateCommand);
+    punkteEl.addEventListener(ev, updateCommand);
+    outEl.addEventListener(ev, updateCommand);
+  });
+  document.querySelectorAll('input[name="geschlecht"]').forEach((r) =>
+    r.addEventListener("change", updateCommand));
+
+  // Enter im Formular soll die Seite nicht neu laden
+  $("finder").addEventListener("submit", (e) => e.preventDefault());
+
+  updateCommand();
+})();
+</script>
+</body>
+</html>

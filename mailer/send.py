@@ -1,4 +1,4 @@
-"""send.py - Orchestriert den Mailversand an die im Doctor Hunter gefundenen Adressen.
+"""send.py - Orchestriert den Mailversand an die im Doctor Finder gefundenen Adressen.
 
 Ablauf:
   1. Fund-JSON (``assets/aerzte_*.json`` aus Teil 1) laden und Empfaenger extrahieren.

@@ -62,7 +62,7 @@ def ask_login_popup(prefill_email: str = "") -> tuple[str, str] | None:
     except tk.TclError:
         return _ask_login_console(prefill_email)
 
-    root.title("Doctor Hunter - Mail-Login")
+    root.title("Doctor Finder - Mail-Login")
     root.resizable(False, False)
     root.attributes("-topmost", True)
 

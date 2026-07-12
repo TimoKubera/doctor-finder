@@ -1,4 +1,4 @@
-"""mailer - Versand der im Doctor Hunter gefundenen Arzt-Adressen.
+"""mailer - Versand der im Doctor Finder gefundenen Arzt-Adressen.
 
 Bausteine:
   - config.py      Konfiguration aus Umgebungsvariablen / optionaler .env

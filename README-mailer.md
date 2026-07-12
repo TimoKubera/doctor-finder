@@ -1,6 +1,6 @@
 # Mailer – Versand an die gefundenen Adressen
 
-Zweiter Teil des Projekts: verschickt eine Mail-Vorlage an die vom **Doctor Hunter**
+Zweiter Teil des Projekts: verschickt eine Mail-Vorlage an die vom **Doctor Finder**
 (`Find-Doctors.ps1`) gefundenen Arzt-Adressen. Das Backend ist in **Python**
 geschrieben (Standardbibliothek, keine Zusatzpakete nötig).
 
