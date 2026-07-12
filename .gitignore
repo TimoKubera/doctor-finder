@@ -1,0 +1,7 @@
+# Secrets / lokale Konfiguration - niemals committen
+.env
+mailer/.env
+
+# Python
+__pycache__/
+*.py[cod]

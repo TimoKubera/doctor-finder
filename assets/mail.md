@@ -2,7 +2,7 @@
 tbd
 
 # Body
-Sehr geehrte Damen und Herren,
+{{anrede}}
 
 lorem ipsum.
 
