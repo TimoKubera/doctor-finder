@@ -1,0 +1,42 @@
+{
+    "suche": {
+        "fachgebiete": [
+            {
+                "nr": "23",
+                "name": "Psychiatrie und Psychotherapie"
+            }
+        ],
+        "ort": "Hannover",
+        "hinweis": "TESTLAUF - eigene Adressen, keine echten Arzt-Adressen"
+    },
+    "aerzte": [
+        {
+            "name": "Herr Timo Kubera (Testadresse)",
+            "vorname": "Timo",
+            "nachname": "Kubera",
+            "titel": "",
+            "geschlecht": "maennlich",
+            "fachgebiet": "Psychiatrie und Psychotherapie",
+            "strasse": "",
+            "plz": "",
+            "ort": "Hannover",
+            "telefon": "",
+            "homepage": "",
+            "email": "timokubera@yahoo.com"
+        },
+        {
+            "name": "Herr Ruven Suthmeier (Testadresse)",
+            "vorname": "Ruven",
+            "nachname": "Suthmeier",
+            "titel": "",
+            "geschlecht": "maennlich",
+            "fachgebiet": "Psychiatrie und Psychotherapie",
+            "strasse": "",
+            "plz": "",
+            "ort": "Hannover",
+            "telefon": "",
+            "homepage": "",
+            "email": "r.suthmeier@gmail.com"
+        }
+    ]
+}

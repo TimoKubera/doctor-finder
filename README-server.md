@@ -36,13 +36,17 @@ läuft er automatisch im **Demo-/Mock-Modus** und liefert die Beispieldaten aus
 
 ## API
 
-| Methode & Pfad          | Zweck |
-|-------------------------|-------|
-| `GET /`                 | Weboberfläche (`web/index.html`) |
-| `GET /api/health`       | `{ok, powershell, mock, running}` |
-| `GET /api/fachgebiete`  | Fachgebiets-Liste `[{nr, name}, …]` |
-| `POST /api/search`      | Startet einen Lauf → `{job_id}` (202) |
-| `GET /api/search/{id}`  | Status/Fortschritt/Ergebnis des Laufs |
+| Methode & Pfad              | Zweck |
+|-----------------------------|-------|
+| `GET /`                     | Weboberfläche (`web/index.html`) |
+| `GET /api/health`           | `{ok, powershell, mock, running, mail_running}` |
+| `GET /api/fachgebiete`      | Fachgebiets-Liste `[{nr, name}, …]` |
+| `POST /api/search`          | Startet einen Lauf → `{job_id}` (202) |
+| `GET /api/search/{id}`      | Status/Fortschritt/Ergebnis des Laufs |
+| `GET /api/mailer/sources`   | Verfügbare Fund-JSONs aus `assets/` + `server/runs/` |
+| `POST /api/mailer/preview`  | Dry-Run: erste gerenderte Mail `{source, limit?}` |
+| `POST /api/mailer/send`     | Startet den Versand `{source, email, password, limit?}` → `{job_id}` (202) |
+| `GET /api/mailer/jobs/{id}` | Status/Fortschritt/Ergebnis des Versands |
 
 `POST /api/search` erwartet JSON:
 
@@ -54,6 +58,27 @@ Die Parameter werden serverseitig validiert: Fachgebiets-Nummern müssen in
 `lib/Fachgebiete.ps1` existieren, `geschlecht` ist `m` / `w` / leer, `punkte`
 liegt zwischen 1 und 50. Der Ort wird als einzelnes Argument (ohne Shell) an
 PowerShell übergeben – kein Command-Injection-Risiko.
+
+## Mailer aus dem Browser
+
+Der Abschnitt **„Mailer – Anfrage versenden"** in der Oberfläche verschickt die
+Vorlage `assets/mail.md` an die Adressen einer Fund-JSON – unabhängig von einer
+vorherigen Suche:
+
+1. **Empfängerliste wählen** – alle `aerzte_*.json` aus `assets/` und
+   `server/runs/` stehen im Dropdown (mit Empfänger-Anzahl, neueste zuerst).
+   Die Auswahl wird serverseitig gegen diese Allowlist geprüft.
+2. **Vorschau** – die erste gerenderte Mail (Anrede, Platzhalter) wird sofort
+   angezeigt, inklusive der Anzahl der Mails, die gesendet würden.
+3. **Versand** – Absender-E-Mail und Passwort/App-Passwort eingeben (werden nur
+   für diesen Versand verwendet, nie gespeichert oder geloggt), optional ein
+   Limit setzen, dann senden. Der Fortschritt (OK/FEHL je Adresse) wird live
+   angezeigt. Es läuft höchstens ein Versand gleichzeitig (Schutz vor
+   Doppel-Versand).
+
+Der Versand nutzt dieselbe Logik wie `python -m mailer` (siehe
+`README-mailer.md`), inklusive SMTP-Erkennung aus der Absender-Domain und
+optionalem Brevo-Backend über `mailer/.env`.
 
 ## Sicherheit / Betrieb
 

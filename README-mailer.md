@@ -47,6 +47,11 @@ python -m mailer
 python -m mailer --json assets/aerzte_23_Hannover_20260711_205704.json --limit 3 --yes
 ```
 
+Alternativ lässt sich der Versand auch **direkt aus dem Browser** starten:
+`python -m server` ausführen und in der Weboberfläche den Abschnitt
+**„Mailer – Anfrage versenden"** nutzen (Fund-JSON-Auswahl, Vorschau,
+Versand mit Live-Fortschritt – siehe `README-server.md`).
+
 | Option        | Bedeutung |
 |---------------|-----------|
 | `--dry-run`   | Rendert die erste Mail und zeigt sie an, **ohne** zu senden (kein Login). |

@@ -5,16 +5,21 @@ bereit, die Find-Doctors.ps1 mit den in der GUI eingegebenen Parametern
 ausfuehrt. Reine Python-Standardbibliothek - keine Zusatzpakete.
 
 Endpunkte:
-  GET  /                 -> web/index.html
-  GET  /<datei>          -> statische Datei aus web/
-  GET  /api/health       -> {ok, powershell, mock, running}
-  GET  /api/fachgebiete  -> [{nr, name}, ...]
-  POST /api/search       -> startet einen Suchlauf -> {job_id}
-  GET  /api/search/<id>  -> Status/Fortschritt/Ergebnis des Laufs
+  GET  /                     -> web/index.html
+  GET  /<datei>              -> statische Datei aus web/
+  GET  /api/health           -> {ok, powershell, mock, running, mail_running}
+  GET  /api/fachgebiete      -> [{nr, name}, ...]
+  POST /api/search           -> startet einen Suchlauf -> {job_id}
+  GET  /api/search/<id>      -> Status/Fortschritt/Ergebnis des Laufs
+  GET  /api/mailer/sources   -> verfuegbare Fund-JSONs (assets/ + server/runs/)
+  POST /api/mailer/preview   -> Dry-Run: erste gerenderte Mail einer Fund-JSON
+  POST /api/mailer/send      -> startet den Mailversand -> {job_id}
+  GET  /api/mailer/jobs/<id> -> Status/Fortschritt/Ergebnis des Versands
 
 Der Crawler wird lokal als Subprozess gestartet; der Server bindet daher
 standardmaessig nur an 127.0.0.1. Wegen des TK-Tageskontingents laeuft
-hoechstens EIN Suchlauf gleichzeitig.
+hoechstens EIN Suchlauf gleichzeitig; ebenso hoechstens EIN Mailversand
+(Schutz vor doppeltem Versand).
 
 Aufruf:
     python -m server                 # http://127.0.0.1:8765
@@ -31,9 +36,10 @@ import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Callable
 from urllib.parse import unquote, urlparse
 
-from . import runner
+from . import mailer_api, runner
 
 WEB_DIR = runner.REPO_ROOT / "web"
 
@@ -55,17 +61,12 @@ def _now() -> str:
 
 
 class JobManager:
-    """Verwaltet Suchlaeufe in Hintergrund-Threads (max. ein aktiver Lauf)."""
+    """Verwaltet Hintergrund-Jobs in Threads (max. ein aktiver Lauf pro Manager)."""
 
-    def __init__(self, force_mock: bool) -> None:
-        self.force_mock = force_mock
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
         self._jobs: dict[str, dict] = {}
         self._lock = threading.Lock()
-        self._valid_fg = runner.load_fachgebiete()
-
-    @property
-    def valid_fachgebiete(self) -> dict[str, str]:
-        return self._valid_fg
 
     def has_running(self) -> bool:
         with self._lock:
@@ -88,7 +89,12 @@ class JobManager:
                 "finished": job["finished"],
             }
 
-    def start(self, params: dict) -> str:
+    def start(self, work: Callable[[Callable[[str], None]], dict]) -> str:
+        """Startet ``work(on_progress)`` in einem Thread und liefert die Job-ID.
+
+        ``work`` gibt ein dict mit den optionalen Schluesseln 'result' und
+        'out_path' zurueck; Exceptions setzen den Job auf 'error'.
+        """
         job_id = uuid.uuid4().hex[:12]
         job = {
             "status": "running",
@@ -98,7 +104,6 @@ class JobManager:
             "error": None,
             "started": _now(),
             "finished": None,
-            "params": params,
         }
         with self._lock:
             self._jobs[job_id] = job
@@ -109,12 +114,10 @@ class JobManager:
 
         def worker() -> None:
             try:
-                outcome = runner.run_search(
-                    params, on_progress, force_mock=self.force_mock
-                )
+                outcome = work(on_progress) or {}
                 with self._lock:
-                    job["result"] = outcome["result"]
-                    job["out_path"] = outcome["out_path"]
+                    job["result"] = outcome.get("result")
+                    job["out_path"] = outcome.get("out_path")
                     job["status"] = "done"
             except Exception as exc:  # noqa: BLE001 - Fehler an den Client melden
                 with self._lock:
@@ -125,13 +128,17 @@ class JobManager:
                 with self._lock:
                     job["finished"] = _now()
 
-        threading.Thread(target=worker, name=f"search-{job_id}", daemon=True).start()
+        threading.Thread(target=worker, name=f"{self.kind}-{job_id}", daemon=True).start()
         return job_id
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DoctorFinder/1.0"
-    jobs: JobManager  # von make_server gesetzt
+    server_version = "DoctorFinder/1.1"
+    # von make_server gesetzt:
+    search_jobs: JobManager
+    mail_jobs: JobManager
+    force_mock: bool
+    valid_fg: dict[str, str]
 
     # -- Hilfen ---------------------------------------------------------------
 
@@ -158,49 +165,95 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({
                 "ok": True,
                 "powershell": runner.find_powershell() is not None,
-                "mock": self.jobs.force_mock or runner.find_powershell() is None,
-                "running": self.jobs.has_running(),
+                "mock": self.force_mock or runner.find_powershell() is None,
+                "running": self.search_jobs.has_running(),
+                "mail_running": self.mail_jobs.has_running(),
             })
             return
         if path == "/api/fachgebiete":
-            items = [{"nr": nr, "name": name} for nr, name in self.jobs.valid_fachgebiete.items()]
+            items = [{"nr": nr, "name": name} for nr, name in self.valid_fg.items()]
             self._send_json({"fachgebiete": items})
             return
+        if path == "/api/mailer/sources":
+            self._send_json({"sources": mailer_api.list_sources()})
+            return
+        if path.startswith("/api/mailer/jobs/"):
+            self._send_snapshot(self.mail_jobs, path[len("/api/mailer/jobs/"):])
+            return
         if path.startswith("/api/search/"):
-            job_id = path[len("/api/search/"):]
-            snap = self.jobs.snapshot(job_id)
-            if snap is None:
-                self._send_error_json(404, "Unbekannter Job.")
-            else:
-                self._send_json(snap)
+            self._send_snapshot(self.search_jobs, path[len("/api/search/"):])
             return
         self._serve_static(path)
 
+    def _send_snapshot(self, jobs: JobManager, job_id: str) -> None:
+        snap = jobs.snapshot(job_id)
+        if snap is None:
+            self._send_error_json(404, "Unbekannter Job.")
+        else:
+            self._send_json(snap)
+
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path != "/api/search":
-            self._send_error_json(404, "Nicht gefunden.")
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length else b"{}"
+            payload = json.loads(raw.decode("utf-8") or "{}")
+            if not isinstance(payload, dict):
+                raise ValueError("kein JSON-Objekt")
+        except (ValueError, UnicodeDecodeError):
+            self._send_error_json(400, "Ungueltiger JSON-Body.")
             return
-        if self.jobs.has_running():
+        if path == "/api/search":
+            self._post_search(payload)
+        elif path == "/api/mailer/preview":
+            self._post_mail_preview(payload)
+        elif path == "/api/mailer/send":
+            self._post_mail_send(payload)
+        else:
+            self._send_error_json(404, "Nicht gefunden.")
+
+    def _post_search(self, payload: dict) -> None:
+        if self.search_jobs.has_running():
             self._send_error_json(
                 409, "Es laeuft bereits eine Suche. Bitte warten, bis sie fertig ist "
                      "(TK-Tageskontingent)."
             )
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            raw = self.rfile.read(length) if length else b"{}"
-            payload = json.loads(raw.decode("utf-8") or "{}")
-        except (ValueError, UnicodeDecodeError):
-            self._send_error_json(400, "Ungueltiger JSON-Body.")
-            return
-        try:
-            params = runner.validate_params(payload, self.jobs.valid_fachgebiete)
+            params = runner.validate_params(payload, self.valid_fg)
         except runner.ValidationError as exc:
             self._send_error_json(400, str(exc))
             return
-        job_id = self.jobs.start(params)
+        force_mock = self.force_mock
+        job_id = self.search_jobs.start(
+            lambda on_progress: runner.run_search(params, on_progress, force_mock=force_mock)
+        )
         self._send_json({"job_id": job_id}, status=202)
+
+    def _post_mail_preview(self, payload: dict) -> None:
+        try:
+            self._send_json(mailer_api.preview(payload))
+        except runner.ValidationError as exc:
+            self._send_error_json(400, str(exc))
+        except Exception as exc:  # noqa: BLE001 - defekte Vorlage/JSON sauber melden
+            self._send_error_json(400, f"Vorschau fehlgeschlagen: {exc}")
+
+    def _post_mail_send(self, payload: dict) -> None:
+        if self.mail_jobs.has_running():
+            self._send_error_json(
+                409, "Es laeuft bereits ein Mailversand. Bitte warten, bis er fertig ist."
+            )
+            return
+        try:
+            prepared = mailer_api.prepare_send(payload)
+        except runner.ValidationError as exc:
+            self._send_error_json(400, str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001 - z. B. unbekannter SMTP-Host
+            self._send_error_json(400, f"Versand kann nicht gestartet werden: {exc}")
+            return
+        job_id = self.mail_jobs.start(prepared["work"])
+        self._send_json({"job_id": job_id, "anzahl": prepared["anzahl"]}, status=202)
 
     # -- Statische Dateien ----------------------------------------------------
 
@@ -224,7 +277,12 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(host: str, port: int, force_mock: bool) -> ThreadingHTTPServer:
-    handler = type("BoundHandler", (Handler,), {"jobs": JobManager(force_mock)})
+    handler = type("BoundHandler", (Handler,), {
+        "search_jobs": JobManager("search"),
+        "mail_jobs": JobManager("mail"),
+        "force_mock": force_mock,
+        "valid_fg": runner.load_fachgebiete(),
+    })
     return ThreadingHTTPServer((host, port), handler)
 
 

@@ -74,7 +74,7 @@
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: clamp(20px, 4vw, 48px) 20px 96px; }
+  .wrap { margin: 0 auto; padding: clamp(20px, 4vw, 48px) 20px 96px; }
 
   header.masthead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
   .brand { display: flex; align-items: center; gap: 12px; }
@@ -101,6 +101,14 @@
     padding: clamp(18px, 3vw, 28px);
   }
 
+  main.card {
+    width: 50%; margin: 0 auto;
+  }
+
+  section.card {
+    width: 50%; margin: 0 auto;
+  }
+
   .field { display: flex; flex-direction: column; gap: 8px; }
   .field + .field { margin-top: 22px; }
   .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
@@ -111,10 +119,15 @@
   .req { color: var(--accent); font-weight: 700; }
   .hint { font-size: .8rem; color: var(--faint); margin: 0; }
 
-  input[type="text"], input[type="number"] {
+  input[type="text"], input[type="number"], input[type="email"], input[type="password"], select {
     width: 100%; font: inherit; color: var(--ink);
     background: var(--surface-2); border: 1px solid var(--border);
     border-radius: var(--radius-sm); padding: 11px 13px; transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  select:focus-visible {
+    outline: none; border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent);
+    background: var(--surface);
   }
   input::placeholder { color: var(--faint); }
   input:focus-visible, .combo-input:focus-within {
@@ -254,11 +267,46 @@
   .run-status.err { color: var(--danger); }
   .run-status.ok { color: var(--accent); }
   pre.log {
-    margin: 0; font-family: var(--mono); font-size: .78rem; line-height: 1.55;
+    margin: 0; font-family: var(--mono); font-size: .78rem; line-height: 1.5;
     background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 12px 14px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    padding: 10px 12px; max-height: 260px; overflow: auto; white-space: normal;
     color: var(--muted);
   }
+  /* Farbige Log-Zeilen */
+  :root {
+    --log-green: #1a7f46; --log-red: #c8402c; --log-amber: #b7791f; --log-blue: #2563a8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --log-green: #5fd08a; --log-red: #f08a70; --log-amber: #e6b74a; --log-blue: #7cb4ec; }
+  }
+  :root[data-theme="light"] { --log-green: #1a7f46; --log-red: #c8402c; --log-amber: #b7791f; --log-blue: #2563a8; }
+  :root[data-theme="dark"]  { --log-green: #5fd08a; --log-red: #f08a70; --log-amber: #e6b74a; --log-blue: #7cb4ec; }
+
+  .log .ln {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 2px 7px; border-radius: 6px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .log .ln + .ln { margin-top: 2px; }
+  .log .ln-ico { flex: none; width: 1.35em; text-align: center; font-family: var(--sans); font-size: .82em; }
+  .log .ln-txt { flex: 1 1 auto; min-width: 0; }
+  .log .ln-sub { margin-left: 18px; font-size: .96em; }
+
+  .log .ln-plain  { color: var(--muted); }
+  .log .ln-muted  { color: var(--faint); }
+  .log .ln-info   { color: var(--log-blue); }
+  .log .ln-new    { color: var(--log-green); font-weight: 600;
+                    background: color-mix(in srgb, var(--log-green) 12%, transparent); }
+  .log .ln-found,
+  .log .ln-done   { color: var(--log-green); font-weight: 650; }
+  .log .ln-dup    { color: var(--log-red);
+                    background: color-mix(in srgb, var(--log-red) 10%, transparent); }
+  .log .ln-err    { color: var(--log-red); font-weight: 650;
+                    background: color-mix(in srgb, var(--log-red) 14%, transparent); }
+  .log .ln-warn   { color: var(--log-amber); }
+  .log .ln-head   { color: var(--accent); font-weight: 700; letter-spacing: .01em; margin-top: 6px; }
+  .log .ln-start  { color: var(--accent); font-weight: 600; }
+  .log .ln:first-child.ln-head { margin-top: 0; }
 
   .results { margin-top: 22px; }
   .results-summary { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -276,6 +324,37 @@
   .results-note code { font-family: var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); font-size: .95em; word-break: break-all; }
 
   .output.secondary .output-head .lbl::after { content: " · alternativ manuell"; color: var(--faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* Mailer-Abschnitt */
+  #mailerCard { margin-top: 26px; }
+  .card-head { margin-bottom: 22px; }
+  .card-head h2 { font-size: 1.05rem; margin: 0; letter-spacing: -.01em; }
+  .card-head p { margin: 3px 0 0; color: var(--muted); font-size: .84rem; }
+  .source-row { display: flex; gap: 8px; align-items: stretch; }
+  .source-row select { flex: 1; min-width: 0; }
+  .icon-btn {
+    flex: none; width: 46px; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--muted); border-radius: var(--radius-sm); cursor: pointer;
+    display: grid; place-items: center; transition: color .15s, border-color .15s;
+  }
+  .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .mail-preview {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2); padding: 13px 15px;
+  }
+  .mail-preview .mp-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: .85rem; margin-bottom: 10px; }
+  .mail-preview .mp-k {
+    font-size: .72rem; font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); align-self: baseline;
+  }
+  pre.mp-body {
+    margin: 0; font: inherit; font-size: .88rem; white-space: pre-wrap; word-break: break-word;
+    border-top: 1px dashed var(--border-strong); padding-top: 10px; color: var(--ink);
+  }
+  .mail-cred { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 520px) { .mail-cred { grid-template-columns: 1fr; } }
+  .mail-limit input { max-width: 110px; }
 
   @media (prefers-reduced-motion: reduce) { *, .spinner { transition: none !important; animation: none !important; } }
   :focus-visible { outline-offset: 2px; }
@@ -400,6 +479,66 @@
       <p class="run-note">Im Projektordner in <strong>PowerShell</strong> ausführen. Ohne passende Ausführungsrichtlinie ggf. mit <code>powershell -ExecutionPolicy Bypass -File .\Find-Doctors.ps1 …</code></p>
     </div>
   </main>
+
+  <!-- Mailer (nur wenn vom Backend ausgeliefert) -->
+  <section class="card" id="mailerCard" hidden>
+    <div class="card-head">
+      <h2>Mailer – Anfrage versenden</h2>
+      <p>Verschickt die Vorlage <code style="font-family:var(--mono)">assets/mail.md</code> an die Adressen einer Fund-JSON – unabhängig von einer vorherigen Suche.</p>
+    </div>
+
+    <div class="field">
+      <div class="label-row">
+        <label class="lbl" for="mailSource">Empfängerliste (Fund-JSON)</label>
+        <p class="hint" id="mailSourceInfo"></p>
+      </div>
+      <div class="source-row">
+        <select id="mailSource"></select>
+        <button class="icon-btn" id="mailReload" type="button" aria-label="Liste neu laden" title="Liste neu laden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>
+        </button>
+      </div>
+      <p class="hint">Alle <code style="font-family:var(--mono)">aerzte_*.json</code> aus <code style="font-family:var(--mono)">assets/</code> und <code style="font-family:var(--mono)">server/runs/</code>, neueste zuerst.</p>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Vorschau (erste Mail)</label>
+      <div class="mail-preview" id="mailPreview"><p class="hint">Noch keine Vorschau.</p></div>
+    </div>
+
+    <div class="field mail-cred">
+      <div class="field" style="margin:0;">
+        <label class="lbl" for="mailEmail">Absender-E-Mail <span class="req" title="Pflichtfeld">*</span></label>
+        <input type="email" id="mailEmail" autocomplete="off" spellcheck="false" placeholder="z. B. name@yahoo.com">
+      </div>
+      <div class="field" style="margin:0;">
+        <label class="lbl" for="mailPass">Passwort / App-Passwort <span class="req" title="Pflichtfeld">*</span></label>
+        <input type="password" id="mailPass" autocomplete="off" placeholder="wird nicht gespeichert">
+      </div>
+    </div>
+    <div class="field mail-limit">
+      <label class="lbl" for="mailLimit">Limit <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
+      <input type="number" id="mailLimit" min="1" max="500" step="1" inputmode="numeric" placeholder="alle">
+      <p class="hint">Nur an die ersten N Empfänger senden – z. B. für einen Testlauf.</p>
+    </div>
+
+    <div class="run-panel" style="margin-top:24px;">
+      <button class="btn-primary" id="mailSendBtn" type="button" disabled>
+        <svg class="ico-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="mailSendLabel">Mails senden</span>
+      </button>
+      <span class="run-mode">Zugangsdaten werden nur für diesen Versand verwendet und nie gespeichert. Bei Yahoo/Gmail mit 2FA ist ein App-Passwort nötig.</span>
+    </div>
+
+    <div class="progress" id="mailProgress" hidden>
+      <div class="progress-head">
+        <span class="lbl">Versand</span>
+        <span class="run-status" id="mailStatus"></span>
+      </div>
+      <pre class="log" id="mailLog" aria-live="polite"></pre>
+    </div>
+  </section>
 
   <footer>
     Doctor Finder · erzeugt den Aufruf für <code style="font-family:var(--mono)">Find-Doctors.ps1</code>
@@ -683,6 +822,7 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
     } else {
       runMode.textContent = "Startet Find-Doctors.ps1 auf dem Server.";
     }
+    initMailer();
   }
 
   function setBusy(busy) {
@@ -696,8 +836,71 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
     return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
   }
 
+  // Ordnet einer Log-Zeile eine CSS-Klasse (Farbe) und ein Emoji zu.
+  function classifyLine(t) {
+    const l = t.toLowerCase();
+    const has = (...subs) => subs.some((s) => l.includes(s));
+
+    // Fehler / Abbruch – rot, hervorgehoben
+    if (has("abbruch", "fehlgeschlagen", "erschoepft", "erschöpft", "verloren", "zeitueberschreitung")
+        || l.startsWith("fehler") || l === "keine treffer.")
+      return { cls: "ln-err", ico: "❌" };
+
+    // Neuer Arzt mit E-Mail übernommen – grün
+    if (/^ok\b/.test(l) || l.startsWith("ok -") || l.startsWith("ok –"))
+      return { cls: "ln-new", ico: "✅" };
+
+    // Ergebnis gespeichert / Lauf fertig – grün
+    if (has("ergebnis gespeichert")) return { cls: "ln-done", ico: "💾" };
+    if (l.startsWith("fertig"))      return { cls: "ln-done", ico: "🎉" };
+
+    // Abschnittsüberschriften – Akzentfarbe
+    if (l.startsWith("--- fachgebiet")) return { cls: "ln-head", ico: "🩺" };
+    if (l.startsWith("---") || l.startsWith("===") || has("zusammenfassung"))
+      return { cls: "ln-head", ico: "📋" };
+
+    // Suchpunkt-Fortschritt (auch die "x neu"-Bilanz) – blau
+    if (l.startsWith("suchpunkt")) return { cls: "ln-info", ico: "🔍" };
+    if (/^\[\d+\/\d+\]/.test(t))   return { cls: "ln-info", ico: "🔎" };
+
+    // Bereits gefunden: Duplikat / Überschneidung – rot
+    if (has("doppelte", "uebersprungen", "übersprungen", "ueberschneidung", "überschneidung"))
+      return { cls: "ln-dup", ico: "🔁" };
+
+    // Verworfen / ignoriert / Warnungen – gelb
+    if (has("verworfen", "ignoriert", "keine homepage", "keine e-mail", "keine e‑mail",
+            "andere stadt", "ungueltig", "ungültig"))
+      return { cls: "ln-warn", ico: "⚠️" };
+
+    // Treffer-Meldungen der TK-Suche – grün
+    if (has("eindeutige eintraege gefunden", "eindeutige einträge gefunden", "tk meldet"))
+      return { cls: "ln-found", ico: "📊" };
+
+    // Start des Crawlers
+    if (l.startsWith("starte")) return { cls: "ln-start", ico: "🚀" };
+
+    // Sonstiger Fortschritt / Info
+    if (has("suche nach", "suche im tk", "ermittle", "frage tk", "fachgebiet(e)", "fachgebiet"))
+      return { cls: "ln-info", ico: "🔎" };
+
+    // Mock-/Demo-Hinweise
+    if (has("mock", "beispieldaten", "demo")) return { cls: "ln-muted", ico: "🧪" };
+
+    return { cls: "ln-plain", ico: "•" };
+  }
+
+  function fmtLogLine(raw) {
+    const indent = (raw.match(/^\s*/)[0] || "").length;
+    const text = raw.trim();
+    if (!text) return "";
+    const { cls, ico } = classifyLine(text);
+    const sub = indent >= 6 && cls !== "ln-head" ? " ln-sub" : "";
+    return `<div class="ln ${cls}${sub}"><span class="ln-ico" aria-hidden="true">${ico}</span>`
+         + `<span class="ln-txt">${esc(text)}</span></div>`;
+  }
+
   function renderLog(lines) {
-    logEl.textContent = lines.join("\n");
+    logEl.innerHTML = lines.map(fmtLogLine).join("");
     logEl.scrollTop = logEl.scrollHeight;
   }
 
@@ -721,7 +924,7 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
         <thead><tr><th>Name</th><th>Fachgebiet</th><th>Ort</th><th>E-Mail</th></tr></thead>
         <tbody>${rows}</tbody></table></div>` : '<p class="hint">Keine Treffer mit E-Mail-Adresse.</p>'}
       <p class="results-note">Ergebnis gespeichert: <code>${esc(snap.out_path || "")}</code>.
-        Versand an diese Adressen mit <code>python -m mailer</code> (siehe README-mailer.md).</p>`;
+        Versand an diese Adressen unten im Abschnitt <strong>Mailer</strong> oder mit <code>python -m mailer</code>.</p>`;
     resultsEl.hidden = false;
   }
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -748,6 +951,7 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
       runStatus.textContent = "fertig in " + fmtElapsed();
       runStatus.className = "run-status ok";
       renderResults(snap);
+      if (mailerReady) loadMailSources();   // neue Fund-JSON im Mailer anbieten
     } else {
       runStatus.textContent = "Fehler: " + (snap.error || "unbekannt");
       runStatus.className = "run-status err";
@@ -789,6 +993,177 @@ const FACHGEBIETE = [["1","Allergologie"],["2","Allgemeinmedizin"],["3","Arbeits
     polling = setInterval(() => poll(job.job_id), 1000);
     poll(job.job_id);
   });
+
+  // ------------------------------------------------------------------
+  //  Mailer: Versand direkt aus dem Browser (nur mit Backend)
+  // ------------------------------------------------------------------
+  const mailerCard = $("mailerCard"), mailSource = $("mailSource"), mailReload = $("mailReload"),
+        mailSourceInfo = $("mailSourceInfo"), mailPreview = $("mailPreview"),
+        mailEmail = $("mailEmail"), mailPass = $("mailPass"), mailLimit = $("mailLimit"),
+        mailSendBtn = $("mailSendBtn"), mailSendLabel = $("mailSendLabel"),
+        mailProgress = $("mailProgress"), mailStatus = $("mailStatus"), mailLog = $("mailLog");
+  let mailSources = [], mailPolling = null, mailPreviewData = null, mailerReady = false;
+
+  async function initMailer() {
+    mailerReady = true;
+    mailerCard.hidden = false;
+    loadMailSources();
+  }
+
+  async function loadMailSources() {
+    let data;
+    try {
+      const res = await fetch("api/mailer/sources", { cache: "no-store" });
+      data = await res.json();
+      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    } catch (err) {
+      mailSourceInfo.textContent = "Liste konnte nicht geladen werden.";
+      return;
+    }
+    const prev = mailSource.value;
+    mailSources = data.sources || [];
+    if (!mailSources.length) {
+      mailSource.innerHTML = '<option value="">keine Fund-JSON gefunden</option>';
+      mailSource.disabled = true;
+      mailSendBtn.disabled = true;
+      mailSourceInfo.textContent = "";
+      mailPreview.innerHTML = '<p class="hint">Zuerst eine Suche ausführen – sie erzeugt eine aerzte_*.json.</p>';
+      return;
+    }
+    mailSource.disabled = false;
+    mailSource.innerHTML = mailSources.map((s) => {
+      const info = s.fehler ? "fehlerhaft" : `${s.empfaenger} Empfänger`;
+      const ort = s.ort ? ` · ${s.ort}` : "";
+      return `<option value="${esc(s.id)}">${esc(s.name)} – ${esc(info)}${esc(ort)} (${esc(s.ordner)})</option>`;
+    }).join("");
+    if (prev && mailSources.some((s) => s.id === prev)) mailSource.value = prev;
+    onMailSourceChange();
+  }
+
+  const mailSelected = () => mailSources.find((s) => s.id === mailSource.value);
+
+  function mailLimitValue() {
+    const v = parseInt(mailLimit.value, 10);
+    return isNaN(v) || v < 1 ? null : v;
+  }
+
+  function onMailSourceChange() {
+    const s = mailSelected();
+    if (!s) return;
+    mailSourceInfo.textContent = s.fehler
+      ? "Datei fehlerhaft: " + s.fehler
+      : `${s.empfaenger} Empfänger, ${s.aussortiert || 0} aussortiert · ${s.geaendert}`;
+    loadMailPreview();
+  }
+
+  async function loadMailPreview() {
+    mailPreviewData = null;
+    mailSendBtn.disabled = true;
+    const s = mailSelected();
+    if (!s || s.fehler || !s.empfaenger) {
+      mailPreview.innerHTML = '<p class="hint">Keine Vorschau verfügbar – die Datei enthält keine gültigen Adressen.</p>';
+      return;
+    }
+    mailPreview.innerHTML = '<p class="hint">Vorschau wird geladen …</p>';
+    let data;
+    try {
+      const res = await fetch("api/mailer/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: mailSource.value, limit: mailLimitValue() }),
+      });
+      data = await res.json();
+      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    } catch (err) {
+      mailPreview.innerHTML = `<p class="hint" style="color:var(--danger)">${esc(err.message)}</p>`;
+      return;
+    }
+    mailPreviewData = data;
+    mailSendBtn.disabled = false;
+    mailPreview.innerHTML = `
+      <div class="mp-meta">
+        <span class="mp-k">An</span><span>${esc(data.an)}</span>
+        <span class="mp-k">Betreff</span><span>${esc(data.betreff)}</span>
+      </div>
+      <pre class="mp-body">${esc(data.text)}</pre>
+      <p class="hint" style="margin:10px 0 0;">${data.gesamt} Mail(s) würden gesendet${data.aussortiert ? ` · ${data.aussortiert} Adresse(n) aussortiert` : ""}.</p>`;
+  }
+
+  function setMailBusy(busy) {
+    mailSendBtn.disabled = busy;
+    mailSendBtn.classList.toggle("busy", busy);
+    mailSendLabel.textContent = busy ? "Versand läuft …" : "Mails senden";
+  }
+
+  function stopMailPolling() { if (mailPolling) { clearInterval(mailPolling); mailPolling = null; } }
+
+  async function pollMail(jobId) {
+    let snap;
+    try {
+      const res = await fetch("api/mailer/jobs/" + jobId, { cache: "no-store" });
+      snap = await res.json();
+    } catch {
+      mailStatus.textContent = "Verbindung zum Server verloren.";
+      mailStatus.className = "run-status err";
+      stopMailPolling(); setMailBusy(false); return;
+    }
+    mailLog.textContent = (snap.log || []).join("\n");
+    mailLog.scrollTop = mailLog.scrollHeight;
+    if (snap.status === "running") {
+      mailStatus.textContent = "läuft …";
+      mailStatus.className = "run-status";
+      return;
+    }
+    stopMailPolling();
+    setMailBusy(false);
+    if (snap.status === "done") {
+      const r = snap.result || {};
+      mailStatus.textContent = `fertig – ${r.gesendet || 0} gesendet, ${r.fehlgeschlagen || 0} fehlgeschlagen`;
+      mailStatus.className = "run-status " + (r.fehlgeschlagen ? "err" : "ok");
+      mailPass.value = "";
+    } else {
+      mailStatus.textContent = "Fehler: " + (snap.error || "unbekannt");
+      mailStatus.className = "run-status err";
+    }
+  }
+
+  mailSendBtn.addEventListener("click", async () => {
+    if (!mailSelected() || !mailPreviewData) return;
+    const email = mailEmail.value.trim(), password = mailPass.value;
+    mailProgress.hidden = false;
+    if (!email.includes("@") || !password) {
+      mailStatus.textContent = "Bitte Absender-E-Mail und Passwort/App-Passwort angeben.";
+      mailStatus.className = "run-status err";
+      return;
+    }
+    const n = mailPreviewData.gesamt;
+    if (!window.confirm(`${n} Mail(s) über ${email} senden?`)) return;
+    setMailBusy(true);
+    mailLog.textContent = "";
+    mailStatus.textContent = "wird gestartet …";
+    mailStatus.className = "run-status";
+    let job;
+    try {
+      const res = await fetch("api/mailer/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: mailSource.value, limit: mailLimitValue(), email, password }),
+      });
+      job = await res.json();
+      if (!res.ok) throw new Error(job.error || ("HTTP " + res.status));
+    } catch (err) {
+      mailStatus.textContent = "Start fehlgeschlagen: " + err.message;
+      mailStatus.className = "run-status err";
+      setMailBusy(false);
+      return;
+    }
+    mailPolling = setInterval(() => pollMail(job.job_id), 1000);
+    pollMail(job.job_id);
+  });
+
+  mailSource.addEventListener("change", onMailSourceChange);
+  mailLimit.addEventListener("change", loadMailPreview);
+  mailReload.addEventListener("click", loadMailSources);
 
   initLiveMode();
 })();
