@@ -44,8 +44,9 @@ läuft er automatisch im **Demo-/Mock-Modus** und liefert die Beispieldaten aus
 | `POST /api/search`          | Startet einen Lauf → `{job_id}` (202) |
 | `GET /api/search/{id}`      | Status/Fortschritt/Ergebnis des Laufs |
 | `GET /api/mailer/sources`   | Verfügbare Fund-JSONs aus `assets/` + `server/runs/` |
-| `POST /api/mailer/preview`  | Dry-Run: erste gerenderte Mail `{source, limit?}` |
-| `POST /api/mailer/send`     | Startet den Versand `{source, email, password, limit?}` → `{job_id}` (202) |
+| `GET /api/mailer/template`  | Standard-Mailvorlage `{betreff, text, platzhalter}` aus `assets/mail.md` |
+| `POST /api/mailer/preview`  | Dry-Run: erste gerenderte Mail `{source, limit?, template?}` |
+| `POST /api/mailer/send`     | Startet den Versand `{source, email, password, limit?, template?}` → `{job_id}` (202) |
 | `GET /api/mailer/jobs/{id}` | Status/Fortschritt/Ergebnis des Versands |
 
 `POST /api/search` erwartet JSON:
@@ -62,15 +63,21 @@ PowerShell übergeben – kein Command-Injection-Risiko.
 ## Mailer aus dem Browser
 
 Der Abschnitt **„Mailer – Anfrage versenden"** in der Oberfläche verschickt die
-Vorlage `assets/mail.md` an die Adressen einer Fund-JSON – unabhängig von einer
-vorherigen Suche:
+Mail an die Adressen einer Fund-JSON – unabhängig von einer vorherigen Suche:
 
 1. **Empfängerliste wählen** – alle `aerzte_*.json` aus `assets/` und
    `server/runs/` stehen im Dropdown (mit Empfänger-Anzahl, neueste zuerst).
    Die Auswahl wird serverseitig gegen diese Allowlist geprüft.
-2. **Vorschau** – die erste gerenderte Mail (Anrede, Platzhalter) wird sofort
-   angezeigt, inklusive der Anzahl der Mails, die gesendet würden.
-3. **Versand** – Absender-E-Mail und Passwort/App-Passwort eingeben (werden nur
+2. **Mail anpassen** – Betreff und Mailtext sind mit der Vorlage
+   `assets/mail.md` vorbefüllt und können direkt im Browser bearbeitet werden.
+   Platzhalter wie `{{anrede}}` oder `{{ort}}` werden pro Empfänger ersetzt
+   (unbekannte Platzhalter werden als Fehler gemeldet). Änderungen gelten nur
+   für diesen Versand – `assets/mail.md` bleibt unverändert; „Auf Vorlage
+   zurücksetzen" stellt den Ausgangszustand wieder her.
+3. **Vorschau** – die erste gerenderte Mail (Anrede, Platzhalter) wird sofort
+   angezeigt und bei Änderungen an der Vorlage automatisch aktualisiert,
+   inklusive der Anzahl der Mails, die gesendet würden.
+4. **Versand** – Absender-E-Mail und Passwort/App-Passwort eingeben (werden nur
    für diesen Versand verwendet, nie gespeichert oder geloggt), optional ein
    Limit setzen, dann senden. Der Fortschritt (OK/FEHL je Adresse) wird live
    angezeigt. Es läuft höchstens ein Versand gleichzeitig (Schutz vor

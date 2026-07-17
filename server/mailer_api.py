@@ -2,6 +2,8 @@
 
 Stellt die Bausteine fuer die /api/mailer/*-Endpunkte bereit:
   - Fund-JSONs aus assets/ und server/runs/ auflisten (mit Empfaenger-Zahlen),
+  - Standard-Vorlage (assets/mail.md) ausliefern; Vorschau und Versand
+    akzeptieren optional eine im Frontend angepasste Vorlage (betreff/text),
   - Vorschau der ersten gerenderten Mail (wie ``python -m mailer --dry-run``),
   - Versand vorbereiten und als Hintergrund-Job ausfuehren.
 
@@ -30,6 +32,8 @@ from mailer.send import DEFAULT_TEMPLATE, build_mapping, make_provider  # noqa: 
 from mailer.template import load_template, render  # noqa: E402
 
 MAX_LIMIT = 500
+MAX_SUBJECT_LEN = 300
+MAX_BODY_LEN = 20000
 
 
 # -- Quellen (Fund-JSONs) -------------------------------------------------------
@@ -83,6 +87,40 @@ def resolve_source(source_id: str) -> Path:
     raise ValidationError("Unbekannte Fund-JSON - bitte aus der Liste waehlen.")
 
 
+# -- Vorlage --------------------------------------------------------------------
+
+
+def get_template() -> dict:
+    """Standard-Vorlage (assets/mail.md) fuer das Frontend, plus Platzhalter-Liste."""
+    betreff, text = load_template(DEFAULT_TEMPLATE)
+    return {"betreff": betreff, "text": text, "platzhalter": sorted(build_mapping({}, {}))}
+
+
+def _parse_template(raw: dict) -> tuple[str, str] | None:
+    """Optionale Vorlagen-Anpassung ``{"template": {"betreff", "text"}}`` aus dem Request.
+
+    ``None`` bedeutet: Standard-Vorlage von der Platte verwenden (wie bisher).
+    Die Werte werden wie in template.load_template normalisiert; unbekannte
+    Platzhalter fallen spaeter beim Rendern als ValueError auf (-> HTTP 400).
+    """
+    tpl = raw.get("template")
+    if tpl is None:
+        return None
+    if not isinstance(tpl, dict):
+        raise ValidationError("Vorlage muss ein Objekt mit 'betreff' und 'text' sein.")
+    betreff = " ".join(str(tpl.get("betreff", "")).split())
+    text = str(tpl.get("text", "")).replace("\r\n", "\n")
+    if not betreff:
+        raise ValidationError("Der Betreff darf nicht leer sein.")
+    if not text.strip():
+        raise ValidationError("Der Mailtext darf nicht leer sein.")
+    if len(betreff) > MAX_SUBJECT_LEN:
+        raise ValidationError(f"Betreff ist zu lang (max. {MAX_SUBJECT_LEN} Zeichen).")
+    if len(text) > MAX_BODY_LEN:
+        raise ValidationError(f"Mailtext ist zu lang (max. {MAX_BODY_LEN} Zeichen).")
+    return betreff, text.strip("\n").rstrip() + "\n"
+
+
 # -- Rendern / Vorschau ---------------------------------------------------------
 
 
@@ -98,13 +136,17 @@ def _parse_limit(raw) -> int | None:
     return limit
 
 
-def build_messages(json_path: Path, limit: int | None) -> tuple[list[tuple[str, str, str]], int, dict]:
+def build_messages(
+    json_path: Path, limit: int | None, template: tuple[str, str] | None = None
+) -> tuple[list[tuple[str, str, str]], int, dict]:
     """Rendert alle Mails einer Fund-JSON: [(email, betreff, text), ...].
 
-    Fehler in Vorlage oder Fund-JSON (ValueError/OSError) sollen beim Aufrufer
-    zu HTTP 400 fuehren - genau wie im CLI-Ablauf von mailer/send.py.
+    ``template`` ist eine im Frontend angepasste (betreff, text)-Vorlage;
+    ohne sie wird assets/mail.md verwendet. Fehler in Vorlage oder Fund-JSON
+    (ValueError/OSError) sollen beim Aufrufer zu HTTP 400 fuehren - genau wie
+    im CLI-Ablauf von mailer/send.py.
     """
-    title_tmpl, body_tmpl = load_template(DEFAULT_TEMPLATE)
+    title_tmpl, body_tmpl = template if template is not None else load_template(DEFAULT_TEMPLATE)
     empfaenger, aussortiert, suche = load_recipients(json_path)
     if limit is not None:
         empfaenger = empfaenger[:limit]
@@ -121,7 +163,9 @@ def preview(raw: dict) -> dict:
     if not source:
         raise ValidationError("Bitte eine Fund-JSON auswaehlen.")
     path = resolve_source(source)
-    nachrichten, aussortiert, suche = build_messages(path, _parse_limit(raw.get("limit")))
+    nachrichten, aussortiert, suche = build_messages(
+        path, _parse_limit(raw.get("limit")), _parse_template(raw)
+    )
     if not nachrichten:
         raise ValidationError("Diese Fund-JSON enthaelt keine gueltigen E-Mail-Adressen.")
     to_addr, subject, body = nachrichten[0]
@@ -154,7 +198,13 @@ def validate_send_params(raw: dict) -> dict:
             raise ValidationError("Bitte eine gueltige Absender-E-Mail-Adresse angeben.")
         if not password:
             raise ValidationError("Bitte das Passwort/App-Passwort angeben.")
-    return {"source": source, "email": email, "password": password, "limit": limit}
+    return {
+        "source": source,
+        "email": email,
+        "password": password,
+        "limit": limit,
+        "template": _parse_template(raw),
+    }
 
 
 def prepare_send(raw: dict) -> dict:
@@ -165,7 +215,7 @@ def prepare_send(raw: dict) -> dict:
     """
     params = validate_send_params(raw)
     path = resolve_source(params["source"])
-    nachrichten, _aussortiert, _suche = build_messages(path, params["limit"])
+    nachrichten, _aussortiert, _suche = build_messages(path, params["limit"], params["template"])
     if not nachrichten:
         raise ValidationError("Diese Fund-JSON enthaelt keine gueltigen E-Mail-Adressen.")
     provider = make_provider(params["email"], params["password"])

@@ -12,6 +12,7 @@ Endpunkte:
   POST /api/search           -> startet einen Suchlauf -> {job_id}
   GET  /api/search/<id>      -> Status/Fortschritt/Ergebnis des Laufs
   GET  /api/mailer/sources   -> verfuegbare Fund-JSONs (assets/ + server/runs/)
+  GET  /api/mailer/template  -> Standard-Mailvorlage {betreff, text, platzhalter}
   POST /api/mailer/preview   -> Dry-Run: erste gerenderte Mail einer Fund-JSON
   POST /api/mailer/send      -> startet den Mailversand -> {job_id}
   GET  /api/mailer/jobs/<id> -> Status/Fortschritt/Ergebnis des Versands
@@ -176,6 +177,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/mailer/sources":
             self._send_json({"sources": mailer_api.list_sources()})
+            return
+        if path == "/api/mailer/template":
+            try:
+                self._send_json(mailer_api.get_template())
+            except Exception as exc:  # noqa: BLE001 - defekte mail.md sauber melden
+                self._send_error_json(500, f"Vorlage konnte nicht geladen werden: {exc}")
             return
         if path.startswith("/api/mailer/jobs/"):
             self._send_snapshot(self.mail_jobs, path[len("/api/mailer/jobs/"):])
