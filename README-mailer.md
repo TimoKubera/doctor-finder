@@ -90,8 +90,21 @@ Platzhalter ist ein Fehler (Schutz vor Tippfehlern).
 - Der SMTP-Server wird aus der Absender-Domain abgeleitet (Yahoo, Gmail, Outlook,
   GMX, Web.de, T-Online, Posteo, Mailbox.org …). Unbekannte Domains: `SMTP_HOST`
   (und ggf. `SMTP_PORT`) in `mailer/.env` setzen (siehe `mailer/.env.example`).
-- Bei Postfächern mit **Zwei-Faktor-Authentifizierung** (Yahoo, Gmail) wird ein
-  **App-Passwort** benötigt – nicht das normale Login-Passwort.
+- **Gmail** akzeptiert für SMTP grundsätzlich **kein** normales Konto-Passwort mehr –
+  es wird immer ein **App-Passwort** benötigt (siehe Anleitung unten). Bei **Yahoo**
+  gilt dasselbe, sobald Zwei-Faktor-Authentifizierung aktiv ist.
+
+### Gmail einrichten (einmalig, kostenlos)
+
+1. **2FA aktivieren:** <https://myaccount.google.com/signinoptions/two-step-verification>
+   („Bestätigung in zwei Schritten", z. B. per Telefonnummer oder Authenticator-App).
+   Ohne 2FA bietet Google keine App-Passwörter an.
+2. **App-Passwort erstellen:** <https://myaccount.google.com/apppasswords> –
+   beliebigen Namen vergeben (z. B. „Doctor Finder"). Google zeigt ein
+   16-stelliges Passwort im Format `abcd efgh ijkl mnop` an.
+3. **Verwenden:** Das App-Passwort im Login-Popup bzw. im Web-Formular statt des
+   Konto-Passworts eingeben. Leerzeichen sind egal – sie werden automatisch entfernt.
+   Das App-Passwort lässt sich jederzeit unter demselben Link widerrufen.
 - Alternatives Backend **Brevo** (Transaktions-API, 300 Mails/Tag gratis):
   `MAILER_PROVIDER=brevo`, `BREVO_API_KEY` und eine verifizierte `MAIL_FROM` setzen.
 

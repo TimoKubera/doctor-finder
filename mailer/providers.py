@@ -4,8 +4,10 @@
   (E-Mail + Passwort/App-Passwort) werden zur Laufzeit per Login-Popup abgefragt
   und NIE gespeichert - das ist der gewuenschte "SSO-artige" Ablauf.
   Hinweis: Ein echtes OAuth-SSO ueber die Login-Seite des Providers wuerde eine
-  registrierte OAuth-Client-ID (z. B. Google Cloud Console) voraussetzen; fuer
-  Yahoo/Gmail mit 2FA ist stattdessen ein App-Passwort noetig (siehe README).
+  registrierte OAuth-Client-ID (z. B. Google Cloud Console) voraussetzen. Gmail
+  lehnt das normale Konto-Passwort fuer SMTP grundsaetzlich ab - es wird immer
+  ein App-Passwort benoetigt (2FA aktivieren, dann myaccount.google.com/apppasswords);
+  bei Yahoo mit 2FA ebenso (siehe README-mailer.md).
 - BrevoProvider: Transaktions-API (300 Mails/Tag gratis), API-Key aus BREVO_API_KEY.
 """
 
@@ -70,7 +72,9 @@ def ask_login_popup(prefill_email: str = "") -> tuple[str, str] | None:
              font=("Segoe UI", 10, "bold")).grid(
         row=0, column=0, columnspan=2, padx=12, pady=(12, 6), sticky="w")
     tk.Label(root, text="Die Zugangsdaten werden nur fuer diesen\n"
-                        "Versand verwendet und nicht gespeichert.",
+                        "Versand verwendet und nicht gespeichert.\n"
+                        "Gmail: App-Passwort erforderlich (2FA aktivieren,\n"
+                        "dann Google-Konto -> App-Passwoerter).",
              justify="left", fg="#555555").grid(
         row=1, column=0, columnspan=2, padx=12, pady=(0, 8), sticky="w")
 
@@ -117,6 +121,8 @@ def ask_login_popup(prefill_email: str = "") -> tuple[str, str] | None:
 
 def _ask_login_console(prefill_email: str = "") -> tuple[str, str] | None:
     print("Login beim Mail-Provider (Eingaben werden nicht gespeichert).")
+    print("Gmail: App-Passwort erforderlich (2FA aktivieren, dann "
+          "https://myaccount.google.com/apppasswords).")
     email = input(f"E-Mail-Adresse [{prefill_email}]: ").strip() or prefill_email
     if not email:
         return None
@@ -133,8 +139,8 @@ class SmtpProvider:
 
     def __init__(self, user: str, password: str, host: str = "", port: int = 587):
         self.user = user
-        self.password = password
         self.host = host or self.detect_host(user)
+        self.password = self._normalize_password(password, self.host)
         self.port = port
         if not self.host:
             domain = user.partition("@")[2]
@@ -146,6 +152,18 @@ class SmtpProvider:
     def detect_host(email: str) -> str:
         return SMTP_HOSTS.get(email.partition("@")[2].lower(), "")
 
+    @staticmethod
+    def _normalize_password(password: str, host: str) -> str:
+        """Gmail-App-Passwoerter werden als 'abcd efgh ijkl mnop' angezeigt -
+        beim Einfuegen mit Leerzeichen wuerde der Login scheitern. Nur bei
+        Gmail und exakt diesem Muster (16 Buchstaben) werden die Leerzeichen
+        entfernt; andere Provider erlauben Leerzeichen im Passwort."""
+        if host == "smtp.gmail.com":
+            compact = password.replace(" ", "")
+            if len(compact) == 16 and compact.isalpha():
+                return compact
+        return password
+
     def check_login(self) -> str:
         """Verbindungs- und Login-Test ohne Versand. Leerer String = OK."""
         try:
@@ -154,7 +172,12 @@ class SmtpProvider:
                 smtp.login(self.user, self.password)
             return ""
         except smtplib.SMTPAuthenticationError as exc:
-            return (f"Login fehlgeschlagen ({exc.smtp_code}): bei Yahoo/Gmail mit "
+            if self.host == "smtp.gmail.com":
+                return (f"Login fehlgeschlagen ({exc.smtp_code}): Gmail lehnt das "
+                        f"normale Konto-Passwort immer ab. Bitte 2FA aktivieren und "
+                        f"ein App-Passwort erstellen "
+                        f"(https://myaccount.google.com/apppasswords).")
+            return (f"Login fehlgeschlagen ({exc.smtp_code}): bei Yahoo mit "
                     f"2FA wird ein App-Passwort benoetigt (siehe README-mailer.md).")
         except (smtplib.SMTPException, OSError, socket.timeout) as exc:
             return f"SMTP-Verbindung fehlgeschlagen ({self.host}:{self.port}): {exc}"
